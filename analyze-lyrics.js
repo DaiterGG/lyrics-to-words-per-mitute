@@ -23,7 +23,7 @@ const CHECK_REGEX = /[^\x00-\x7F]/;
 const PROCESS_STEP = 1000000;
 
 const DB_PATH = "db.sqlite3";
-const FINAL_NAME = `result${MIN_WPM}-${MAX_WPM}.txt`;
+const RESULT_NAME = `result${MIN_WPM}-${MAX_WPM}.txt`;
 
 // tracks[track_id] = { tries, ?result }
 // tries: null|0-(MAX_TRIES - 1) - can keep trying
@@ -134,7 +134,7 @@ function parseName(name, artist) {
   return parse_name;
 }
 
-// TODO: unwrap content of that function in loop
+// TODO: unwrap content of that function in the loop
 async function filterTracks(offset) {
   console.log("started " + offset);
   let count = 0;
@@ -215,7 +215,7 @@ async function filterTracks(offset) {
             });
 
             try {
-              fs.appendFileSync(FINAL_NAME, writeToFile);
+              fs.appendFileSync(RESULT_NAME, writeToFile);
               console.log("File has been written successfully.");
             } catch (err) {
               console.error("Error writing to file:", err);
@@ -237,7 +237,7 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
   }
 });
 
-fs.writeFileSync(FINAL_NAME, "");
+fs.writeFileSync(RESULT_NAME, "");
 
 db.all("SELECT COUNT(*) as gg FROM lyrics", (_err, rows) => {
   console.log(rows[0].gg, "lyrics total");
@@ -250,11 +250,13 @@ async function loop(rows_count) {
     console.log("finish " + i);
   }
   db.close();
+
   //optional
   try {
-    const content = fs.readFileSync(FINAL_NAME, "utf8");
-    content.split("\n").sort().join("\n");
-    fs.writeFileSync(FINAL_NAME, content);
+    const content = fs.readFileSync(RESULT_NAME, "utf8")
+      .split("\n").sort().join("\n");
+    fs.writeFileSync(RESULT_NAME, content);
+    console.log("File has been sorted successfully.");
   } catch (err) {
     console.error("(js string is too long?) Error writing to file:", err);
   }
