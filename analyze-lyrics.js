@@ -198,9 +198,10 @@ async function filterTracks(offset) {
               if (!acc.seen.has(key)) {
                 acc.seen.add(key);
                 acc.result.push(x);
-              } else {
-                console.log("duplicate");
               }
+              // else {
+              //   console.log("duplicate");
+              // }
               return acc;
             }, { seen: new Set(), result: [] }).result;
 
