@@ -6,7 +6,7 @@ const sqlite3 = verbose();
 // NOTE:
 // [1.0, 0.0]
 // # 1.0 song is one line repeated
-// # 0.5 song is two lines repeated (50/50)
+// # 0.67 song is two lines repeated (50/50)
 // # 0.3 - 0.1 ~ regular song with choruses
 const MAX_REPEATS = .2;
 // NOTE: filter out short songs
