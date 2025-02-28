@@ -1,16 +1,13 @@
 import fs from "node:fs";
-
 import sqlite3Module from "sqlite3";
-import util from "node:util";
 const { verbose } = sqlite3Module;
 const sqlite3 = verbose();
 
-// tracks[track_id] = { tries, ?result }
-// tries: null|0-(MAX_TRIES - 1) - can keep trying
-// tries: MAX_TRIES - give up
-// tries: MAX_TRIES + 1 - found proper result
-const MAX_TRIES = 3;
-
+// NOTE:
+// [1.0, 0.0]
+// # 1.0 song is one line repeated
+// # 0.5 song is two lines repeated (50/50)
+// # 0.3 - 0.1 ~ regular song with choruses
 const MAX_REPEATS = .2;
 const MIN_LINES = 20;
 const MIN_WPM = 45;
@@ -21,9 +18,16 @@ const CHECK_REGEX = /[^\x00-\x7F]/;
 // NOTE:
 // 2.000.000 is about 9gb of ram
 // if filters are not strict enough
+// lower -> slower
 const PROCESS_STEP = 1000000;
 
 const DB_PATH = "db.sqlite3";
+
+// tracks[track_id] = { tries, ?result }
+// tries: null|0-(MAX_TRIES - 1) - can keep trying
+// tries: MAX_TRIES - give up
+// tries: MAX_TRIES + 1 - found proper result
+const MAX_TRIES = 3;
 
 function calculateWPM(content) {
   // Parse timestamps and lyrics
@@ -65,7 +69,7 @@ function calculateWPM(content) {
     }
   }
 
-  //[0.0, 1.0]
+  // [1.0, 0.0]
   const repeats_val = Math.sqrt(repeats) / entries.length;
 
   // if (repeats_val > .3) {
@@ -122,8 +126,8 @@ function parseName(name, artist) {
       "ft",
     )[0];
   const parse_name = (new_name + new_artist).replace(/[^A-Za-z]/g, "");
-  console.log(name + artist);
-  console.log(parse_name);
+  // console.log(name + artist);
+  // console.log(parse_name);
   return parse_name;
 }
 
