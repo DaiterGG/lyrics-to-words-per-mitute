@@ -9,6 +9,7 @@ const sqlite3 = verbose();
 // # 0.5 song is two lines repeated (50/50)
 // # 0.3 - 0.1 ~ regular song with choruses
 const MAX_REPEATS = .2;
+// NOTE: filter out short songs
 const MIN_LINES = 20;
 const MIN_WPM = 45;
 const MAX_WPM = 55;
@@ -22,11 +23,13 @@ const CHECK_REGEX = /[^\x00-\x7F]/;
 const PROCESS_STEP = 1000000;
 
 const DB_PATH = "db.sqlite3";
+const FINAL_NAME = `result${MIN_WPM}-${MAX_WPM}.txt`;
 
 // tracks[track_id] = { tries, ?result }
 // tries: null|0-(MAX_TRIES - 1) - can keep trying
 // tries: MAX_TRIES - give up
 // tries: MAX_TRIES + 1 - found proper result
+// NOTE: try more lyrics of the same song before giving up
 const MAX_TRIES = 3;
 
 function calculateWPM(content) {
@@ -211,7 +214,7 @@ async function filterTracks(offset) {
             });
 
             try {
-              fs.appendFileSync("result.txt", writeToFile);
+              fs.appendFileSync(FINAL_NAME, writeToFile);
               console.log("File has been written successfully.");
             } catch (err) {
               console.error("Error writing to file:", err);
@@ -233,7 +236,7 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
   }
 });
 
-fs.writeFileSync("result.txt", "");
+fs.writeFileSync(FINAL_NAME, "");
 
 db.all("SELECT COUNT(*) as gg FROM lyrics", (_err, rows) => {
   console.log(rows[0].gg, "lyrics total");
@@ -248,9 +251,9 @@ async function loop(rows_count) {
   db.close();
   //optional
   try {
-    const content = fs.readFileSync("result.txt", "utf8");
+    const content = fs.readFileSync(FINAL_NAME, "utf8");
     content.split("\n").sort().join("\n");
-    fs.writeFileSync("result.txt", content);
+    fs.writeFileSync(FINAL_NAME, content);
   } catch (err) {
     console.error("(js string is too long?) Error writing to file:", err);
   }
