@@ -15,6 +15,8 @@ const MIN_WPM = 45;
 const MAX_WPM = 55;
 // /[^\x00-\x7F]/ is strict english
 const CHECK_REGEX = /[^\x00-\x7F]/;
+// NOTE: more is better at filtering duplicates, but exponentially slower
+const FILTER_QUALITY = 100;
 
 // NOTE:
 // 2.000.000 is about 9gb of ram
@@ -48,7 +50,7 @@ db.all("SELECT COUNT(*) as gg FROM lyrics", (_err, rows) => {
 });
 
 async function loop(rows_count) {
-  for (let i = 0; i < 1; i += PROCESS_STEP) {
+  for (let i = 0; i < rows_count; i += PROCESS_STEP) {
     await filterTracks(i);
     console.log("finish " + i);
   }
@@ -60,19 +62,28 @@ async function loop(rows_count) {
       .split("\n").sort();
 
     // filter duplicates
+    let percent = 0;
     for (let i = 0; i < content.length; i++) {
+      if (i / content.length * 100 > percent) {
+        percent++;
+        console.log(percent + "% filtered");
+      }
       if (content[i].length < 20) continue;
       const name = content[i].split("rp ")[1].split(" Peaks:")[0].split(" - ");
       const key = parseName(name[0], name[1]);
       if (key.length < 8) continue;
-      for (let j = i + 1; j < content.length; j++) {
+      for (
+        let j = i + 1;
+        j < Math.min(i + FILTER_QUALITY, content.length);
+        j++
+      ) {
         const name2 = content[j].split("rp ")[1].split(" Peaks:")[0].split(
           " - ",
         );
         const key2 = parseName(name2[0], name2[1]);
         if (areSimilar(key, key2, 0.6)) {
           // console.log(key, key2, trigramSimilarity(key, key2));
-          // content.splice(j, 1);
+          content.splice(j, 1);
           j--;
         }
       }
