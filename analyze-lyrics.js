@@ -144,10 +144,9 @@ async function filterTracks(offset) {
             const track = tracks.get(tr.id);
             if (track && track.tries === MAX_TRIES + 1) {
               data.push({
-                name: tr.name,
+                name: tr.name.replace("\n", " ").replace("\r", " "),
                 artist: tr.artist_name.replace("\n", " ").replace("\r", " "),
-                result: tracks.get(tr.id).result
-                  .replace("\n", " ").replace("\r", " "),
+                result: tracks.get(tr.id).result,
               });
             }
           },
@@ -288,8 +287,6 @@ function parseName(content) {
     return parse_name;
   } catch (err) {
     console.log(content);
-    console.log(content.split("rp "));
-    console.log(content.split("rp ")[1].split(" Peaks:"));
     console.log("anomaly detected: ", err);
     return "error here: " + content;
   }
