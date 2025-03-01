@@ -8,11 +8,11 @@ const sqlite3 = verbose();
 // # 1.0 song is one line repeated
 // # 0.67 song is two lines repeated (50/50)
 // # 0.3 - 0.1 ~ regular song with choruses
-const MAX_REPEATS = .2;
+const MAX_REPEATS = .25;
 // NOTE: filter out short songs
 const MIN_LINES = 20;
-const MIN_WPM = 45;
-const MAX_WPM = 55;
+const MIN_WPM = 15;
+const MAX_WPM = 500;
 // /[^\x00-\x7F]/ is strict english
 const CHECK_REGEX = /[^\x00-\x7F]/;
 // NOTE: more is better at filtering duplicates, but exponentially slower
@@ -32,7 +32,10 @@ const RESULT_NAME = `result${MIN_WPM}-${MAX_WPM}.txt`;
 // tries: MAX_TRIES - give up
 // tries: MAX_TRIES + 1 - found proper result
 // NOTE: try more lyrics of the same song before giving up
-const MAX_TRIES = 3;
+const MAX_TRIES = 4;
+
+// default: false, for debug
+const DO_ONLY_LAST_FILTERING = false;
 
 // Open the database connection
 const db = new sqlite3.Database(DB_PATH, (err) => {
@@ -41,8 +44,6 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
   }
 });
 
-fs.writeFileSync(RESULT_NAME, "");
-
 db.all("SELECT COUNT(*) as gg FROM lyrics", (_err, rows) => {
   console.log(rows[0].gg, "lyrics total");
   const rows_count = rows[0].gg;
@@ -50,9 +51,12 @@ db.all("SELECT COUNT(*) as gg FROM lyrics", (_err, rows) => {
 });
 
 async function loop(rows_count) {
-  for (let i = 0; i < rows_count; i += PROCESS_STEP) {
-    await filterTracks(i);
-    console.log("finish " + i);
+  if (!DO_ONLY_LAST_FILTERING) {
+    fs.writeFileSync(RESULT_NAME, "");
+    for (let i = 0; i < rows_count; i += PROCESS_STEP) {
+      await filterTracks(i);
+      console.log("finish " + i);
+    }
   }
   db.close();
 
@@ -69,18 +73,14 @@ async function loop(rows_count) {
         console.log(percent + "% filtered");
       }
       if (content[i].length < 20) continue;
-      const name = content[i].split("rp ")[1].split(" Peaks:")[0].split(" - ");
-      const key = parseName(name[0], name[1]);
+      const key = parseName(content[i]);
       if (key.length < 8) continue;
       for (
         let j = i + 1;
         j < Math.min(i + FILTER_QUALITY, content.length);
         j++
       ) {
-        const name2 = content[j].split("rp ")[1].split(" Peaks:")[0].split(
-          " - ",
-        );
-        const key2 = parseName(name2[0], name2[1]);
+        const key2 = parseName(content[j]);
         if (areSimilar(key, key2, 0.6)) {
           // console.log(key, key2, trigramSimilarity(key, key2));
           content.splice(j, 1);
@@ -145,8 +145,8 @@ async function filterTracks(offset) {
             if (track && track.tries === MAX_TRIES + 1) {
               data.push({
                 name: tr.name,
-                artist: tr.artist_name,
-                result: tracks.get(tr.id).result,
+                artist: tr.artist_name.replace("\n", " "),
+                result: tracks.get(tr.id).result.replace("\n", " "),
               });
             }
           },
@@ -265,20 +265,33 @@ export function parseLyrics(lines) {
   return entries;
 }
 
-function parseName(name, artist) {
-  const new_name = name.split(" ").join("").split("-")[0]
-    .split("[")[0].split("(")[0].toLowerCase().split("feat")[0].split(
-      "ft",
-    )[0];
-  const new_artist = artist.split(" ").join("").split("-")[0].split("[")[0]
-    .split("(")[0].toLowerCase().split("feat")[0].split(
-      "ft",
-    )[0];
-  const parse_name = removeDiacritics(new_name + new_artist)
-    .replace(/[^A-Za-z]/g, "");
-  // console.log(name + artist);
-  // console.log(parse_name);
-  return parse_name;
+function parseName(content) {
+  try {
+    const sub_name = content.split("rp ").slice(1).join("rp ");
+    const name = sub_name.split(" Peaks:")
+      .slice(0, sub_name.length - 2).join(" Peaks:")
+      .split(" - ");
+
+    const new_name = name[1].split(" ").join("").split("-")[0]
+      .split("[")[0].split("(")[0].toLowerCase().split("feat")[0].split(
+        "ft",
+      )[0];
+    const new_artist = name[0].split(" ").join("").split("-")[0].split("[")[0]
+      .split("(")[0].toLowerCase().split("feat")[0].split(
+        "ft",
+      )[0];
+    const parse_name = removeDiacritics(new_name + new_artist)
+      .replace(/[^A-Za-z]/g, "");
+    // console.log(name + artist);
+    // console.log(parse_name);
+    return parse_name;
+  } catch (err) {
+    console.log(content);
+    console.log(content.split("rp "));
+    console.log(content.split("rp ")[1].split(" Peaks:"));
+    console.log("anomaly detected: ", err);
+    return "error here: " + content;
+  }
 }
 
 // stackoverflow ctrl+c
