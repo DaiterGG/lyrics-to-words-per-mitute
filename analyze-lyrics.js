@@ -145,8 +145,9 @@ async function filterTracks(offset) {
             if (track && track.tries === MAX_TRIES + 1) {
               data.push({
                 name: tr.name,
-                artist: tr.artist_name.replace("\n", " "),
-                result: tracks.get(tr.id).result.replace("\n", " "),
+                artist: tr.artist_name.replace("\n", " ").replace("\r", " "),
+                result: tracks.get(tr.id).result
+                  .replace("\n", " ").replace("\r", " "),
               });
             }
           },
